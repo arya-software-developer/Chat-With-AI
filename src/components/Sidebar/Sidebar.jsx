@@ -5,7 +5,7 @@ import { useContext, useState } from "react";
 import { ChatContext } from "../../context/ChatContext";
 
 export default function Sidebar() {
-  const { chatList } = useContext(ChatContext);
+  const { chatList, onNewChat } = useContext(ChatContext);
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   function toggleMenuBar() {
@@ -14,7 +14,11 @@ export default function Sidebar() {
 
   return (
     <>
-      <div className="flex flex-col items-start justify-evenly h-screen gap-48 py-6  px-5 bg-blue-50 text-sm">
+      <div
+        className={`flex flex-col w-full items-start justify-evenly h-screen gap-48 py-6  px-5 bg-blue-50 text-sm   ${
+          isMenuOpen ? "max-w-[200px]" : "max-w-fit"
+        } `}
+      >
         <div className="flex flex-col gap-14 items-start justify-center">
           <img
             src={menu}
@@ -23,20 +27,28 @@ export default function Sidebar() {
             onClick={toggleMenuBar}
           />
 
-          <div className="sidebar-item rounded-2xl bg-blue-100 py-1 px-2 ">
+          <div
+            className="sidebar-item rounded-2xl bg-blue-100 py-1 px-2 "
+            onClick={onNewChat}
+          >
             <img src={plusIcon} alt="New Chat" className="sidebar-icon" />
             {isMenuOpen && <span>New Chat</span>}
           </div>
 
           <div>
-            {isMenuOpen && <p>Recent Chats</p>}
+            {isMenuOpen && <p className="font-medium  mb-3">Recent Chats</p>}
             {chatList &&
+              isMenuOpen &&
               chatList.map((chat) => {
-                <div>{chat?.history}</div>;
+                return (
+                  <div
+                    className="truncate max-w-[150px]  font-light my-2"
+                    key={chat?.id}
+                  >
+                    {chat?.messages[0]?.content}
+                  </div>
+                );
               })}
-            <div className="recent-chats">
-              <div>chat</div>
-            </div>
           </div>
         </div>
         <div className="h-full flex flex-col justify-end items-start">
