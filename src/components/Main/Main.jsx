@@ -5,25 +5,26 @@ import { ChatContext } from "../../context/ChatContext";
 import ChatMessage from "./ChatMessage";
 
 export default function Main() {
-  const { userInput, setUserInput, response, onSent, loading } =
+  const { userInput, setUserInput, currentChat, onSent, loading, error } =
     useContext(ChatContext);
 
   return (
-    <div className="w-full flex flex-col justify-start relative h-dvh">
+    <div className="w-full flex flex-col justify-start relative h-dvh text-[14px]">
       <div className=" m-2 text-xl  text-gray-500 sticky top-0">
         Chat with AI
       </div>
       {/* show chat message if any */}
-      {response?.length > 0 ? (
-        <div className="w-full h-full overflow-y-auto max-w-[95%] mx-auto md:max-w-[85%] font-light *:leading-[28px] px-5 md:px-10 ">
-          {response.map((chat, index) => {
-            const isLast = index == response.length - 1;
+      {currentChat?.length > 0 ? (
+        <div className="w-full h-full overflow-y-auto max-w-[100%] mx-auto md:max-w-[85%] font-light *:leading-[28px] px-5 md:px-10 ">
+          {currentChat.map((chat, index) => {
+            const isLast = index == currentChat.length - 1;
             return (
               <ChatMessage
                 key={index}
                 role={chat?.role}
-                text={chat?.parts[0]?.text}
+                text={chat?.content}
                 loading={loading && isLast}
+                error={error && isLast}
               />
             );
           })}

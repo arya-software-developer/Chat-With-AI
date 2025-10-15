@@ -1,57 +1,77 @@
 import { createContext, useState } from "react";
-import runChatStreamSession from "../config/gemini";
 
+import streamOpenRouterChat from "../config/openai";
 export const ChatContext = createContext();
 
 const ChatContextProvider = ({ children }) => {
   const [userInput, setUserInput] = useState("");
-  const [response, setResponse] = useState([]);
+  const [currentChat, setCurrentChat] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [currentChatObject, setCurrentChatObject] = useState(null);
-  const [isNewChat, setIsNewChat] = useState(true);
-  const [chatList, setChatList] = useState(null);
 
+  const [isNewChat, setIsNewChat] = useState(true);
+  const [chatList, setChatList] = useState([]);
+  const [chatId, setChatId] = useState(null);
+  const [error, setError] = useState(false);
+
+  //update chat based on stramed response
   function getChunk(text) {
-    setResponse((prev) => {
+    setCurrentChat((prev) => {
       const length = prev.length > 1 ? prev.length - 1 : 0;
-      const isModelResponse = length > 0 && prev[length]?.role === "model";
+      const isModelResponse = length > 0 && prev[length]?.role === "assistant";
       if (isModelResponse) {
-        prev[length].parts[0].text = prev[length]?.parts[0]?.text + text;
+        prev[length].content = prev[length]?.content + text;
+
         return [...prev];
       }
-      return [...prev, { role: "model", parts: [{ text }] }];
+
+      return [...prev, { role: "assistant", content: text }];
     });
   }
 
-  const onSent = async () => {
-    setResponse((response) => [
-      ...response,
-      { role: "user", parts: [{ text: userInput }] },
-    ]);
-    setUserInput("");
+  function onComplete() {
+    console.log("Finished");
+  }
 
-    await runChatStreamSession(
-      userInput,
+  function onNewChat() {
+    setCurrentChat([]);
+
+    setChatId("");
+  }
+
+  const onSent = async () => {
+    //get all messges from the chat
+    let messages = [...currentChat, { role: "user", content: userInput }];
+    setCurrentChat((response) => {
+      return [...response, { role: "user", content: userInput }];
+    });
+    setUserInput("");
+    await streamOpenRouterChat({
       getChunk,
-      currentChatObject,
-      setIsNewChat,
-      setCurrentChatObject,
-      setLoading
-    );
+      onComplete,
+      chatId,
+      setChatId,
+      messages,
+      setChatList,
+      setLoading,
+      setError,
+    });
   };
 
   const chatContext = {
     userInput,
     setUserInput,
-    response,
-    setResponse,
+    currentChat,
+    setCurrentChat,
     loading,
     setLoading,
     onSent,
-    currentChatObject,
-    setCurrentChatObject,
     chatList,
     setChatList,
+    chatId,
+    setChatId,
+    onNewChat,
+    error,
+    setError,
   };
   return (
     <ChatContext.Provider value={chatContext}>{children}</ChatContext.Provider>

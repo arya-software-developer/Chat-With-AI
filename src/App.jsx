@@ -4,12 +4,14 @@ import { useContext, useEffect } from "react";
 import { ChatContext } from "./context/ChatContext";
 
 function App() {
-  const { chatList, setChatList } = useContext(ChatContext);
+  const { setChatList } = useContext(ChatContext);
 
   useEffect(() => {
     const chatArray = localStorage.getItem("chatList");
+
     chatArray ? setChatList(JSON.parse(chatArray)) : setChatList([]);
   }, []);
+
   return (
     <div className="flex flex-row justify-start">
       <Sidebar />
