@@ -15,7 +15,7 @@ export default function Sidebar() {
   return (
     <>
       <div
-        className={`flex flex-col w-full items-start justify-evenly h-screen gap-48 py-6  px-5 bg-blue-50 text-sm   ${
+        className={`flex flex-col w-full items-start justify-between h-screen py-6  px-5 bg-blue-50 text-sm   ${
           isMenuOpen ? "max-w-[200px]" : "max-w-fit"
         } `}
       >
@@ -35,7 +35,7 @@ export default function Sidebar() {
             {isMenuOpen && <span>New Chat</span>}
           </div>
 
-          <div>
+          <div className="overflow-y-auto h-[calc(100vh-400px)]">
             {isMenuOpen && <p className="font-medium  mb-3">Recent Chats</p>}
             {chatList &&
               isMenuOpen &&
@@ -51,15 +51,14 @@ export default function Sidebar() {
               })}
           </div>
         </div>
-        <div className="h-full flex flex-col justify-end items-start">
-          <div className="sidebar-item">
-            <img
-              src={settingsIcon}
-              alt="Settings icon"
-              className="sidebar-icon"
-            />
-            {isMenuOpen && <span>Settings</span>}
-          </div>
+
+        <div className="sidebar-item h-1/12">
+          <img
+            src={settingsIcon}
+            alt="Settings icon"
+            className="sidebar-icon"
+          />
+          {isMenuOpen && <span>Settings</span>}
         </div>
       </div>
     </>
