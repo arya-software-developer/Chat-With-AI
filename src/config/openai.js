@@ -1,6 +1,4 @@
-const API_KEY = import.meta.env.VITE_OPENAI_KEY;
-const apiEndPoint = "https://openrouter.ai/api/v1/chat/completions";
-const apiEndPoint2 = "/api/chat";
+const apiEndPoint = "/api/chat";
 
 //get response from the API
 async function streamOpenRouterChat({
@@ -13,25 +11,24 @@ async function streamOpenRouterChat({
   setChatList,
   setLoading,
   setError,
+  setCurrentId,
+  abortController,
 }) {
   let currentAssistantReply = "";
   let loadingTurnedOff = false; // flag to track if loading is turned off
+  let isNewChat = false;
   setLoading(true);
   setError(false);
   try {
     const response = await fetch(apiEndPoint, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${API_KEY}`,
-        // "HTTP-Referer": "http://localhost:3000", // Or your site URL
-        // "X-Title": "MyStreamingApp",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-oss-20b:free", // Or another model
-        stream: true,
         messages: messages,
       }),
+      signal: abortController?.signal,
     });
 
     // ✅ Handle HTTP error codes like 400, 500
@@ -62,30 +59,16 @@ async function streamOpenRouterChat({
         const jsonStr = line.replace("data: ", "").trim();
 
         if (jsonStr === "[DONE]") {
-          const updatedMessage = [
-            ...messages,
+          updateChatStorage(
+            messages,
+            chatId,
+            setChatList,
+            currentAssistantReply
+          );
 
-            { role: "assistant", content: currentAssistantReply },
-          ];
-          chatId = chatId || crypto.randomUUID();
-          setChatList((prev) => {
-            const exisitngId = prev.findIndex((chat) => chat?.id === chatId);
-
-            if (exisitngId !== -1) {
-              const updatedList = [...prev];
-              updatedList[exisitngId] = updatedMessage;
-
-              localStorage.setItem("chatList", JSON.stringify(updatedList));
-              return updatedList;
-            } else {
-              const updatedMsg = [
-                ...prev,
-                { id: chatId, messages: updatedMessage },
-              ];
-              localStorage.setItem("chatList", JSON.stringify(updatedMsg));
-              return updatedMsg;
-            }
-          });
+          if (isNewChat) {
+            setChatId(chatId);
+          }
 
           onComplete?.();
           return;
@@ -94,9 +77,18 @@ async function streamOpenRouterChat({
         try {
           const parsed = JSON.parse(jsonStr);
 
+          if (parsed.error) {
+            console.error("API Error:", parsed.error.message);
+            setError(true);
+            setLoading(false);
+            onComplete?.();
+            return; // stop processing further chunks
+          }
+
           if (!chatId && parsed.id) {
             chatId = parsed?.id;
-            setChatId(chatId);
+            isNewChat = true;
+            setCurrentId(chatId);
           }
           const token = parsed.choices?.[0]?.delta?.content;
           if (token) {
@@ -109,14 +101,53 @@ async function streamOpenRouterChat({
           }
         } catch (err) {
           console.warn("Stream parse error:", err, line);
+          setLoading(false);
+          setError(true);
         }
       }
     }
   } catch (err) {
-    console.error("Streaming error:", err);
-    setLoading(false);
-    setError(true);
+    if (err.name === "AbortError") {
+      updateChatStorage(messages, chatId, setChatList, currentAssistantReply);
+    } else {
+      console.error("Streaming error:", err);
+      setLoading(false);
+      setError(true);
+    }
   }
+}
+
+function updateChatStorage(
+  messages,
+  chatId = "",
+  setChatList,
+  currentAssistantReply
+) {
+  const updatedMessage = [
+    ...messages,
+
+    { role: "assistant", content: currentAssistantReply },
+  ];
+  chatId = chatId || crypto.randomUUID();
+  setChatList((prev) => {
+    const exisitngId = prev.findIndex((chat) => chat?.id === chatId);
+
+    if (exisitngId !== -1) {
+      const updatedList = [...prev];
+      updatedList[exisitngId] = {
+        id: chatId,
+        messages: updatedMessage,
+      };
+
+      localStorage.setItem("chatList", JSON.stringify(updatedList));
+      return updatedList;
+    } else {
+      const updatedMsg = [...prev, { id: chatId, messages: updatedMessage }];
+
+      localStorage.setItem("chatList", JSON.stringify(updatedMsg));
+      return updatedMsg;
+    }
+  });
 }
 
 export default streamOpenRouterChat;

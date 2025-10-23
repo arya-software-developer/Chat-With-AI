@@ -1,15 +1,22 @@
-import menu from "../../assets/menu-icon.png";
-import settingsIcon from "../../assets/setting-icon.png";
-import plusIcon from "../../assets/plus-icon.png";
 import { useContext, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import menu from "../../assets/menu-icon.png";
+import plusIcon from "../../assets/plus-icon.png";
+import settingsIcon from "../../assets/setting-icon.png";
 import { ChatContext } from "../../context/ChatContext";
 
 export default function Sidebar() {
   const { chatList, onNewChat } = useContext(ChatContext);
+  const navigate = useNavigate();
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   function toggleMenuBar() {
     setIsMenuOpen((prev) => !prev);
+  }
+
+  function handleNewChat() {
+    navigate("/");
+    onNewChat();
   }
 
   return (
@@ -29,7 +36,7 @@ export default function Sidebar() {
 
           <div
             className="sidebar-item rounded-2xl bg-blue-100 py-1 px-2 "
-            onClick={onNewChat}
+            onClick={handleNewChat}
           >
             <img src={plusIcon} alt="New Chat" className="sidebar-icon" />
             {isMenuOpen && <span>New Chat</span>}

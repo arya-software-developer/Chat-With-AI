@@ -1,12 +1,61 @@
 import sendIcon from "../../assets/send-icon.png";
-import { useContext } from "react";
+import { useContext, useEffect } from "react";
 
 import { ChatContext } from "../../context/ChatContext";
 import ChatMessage from "./ChatMessage";
+import { useLoaderData, useNavigate, useParams } from "react-router-dom";
 
 export default function Main() {
-  const { userInput, setUserInput, currentChat, onSent, loading, error } =
-    useContext(ChatContext);
+  const {
+    userInput,
+    setUserInput,
+    currentChat,
+    setCurrentChat,
+    onSent,
+    loading,
+    error,
+    chatId,
+    setChatId,
+    allowStreamingUpdateRef,
+  } = useContext(ChatContext);
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const currentChatData = useLoaderData();
+
+  useEffect(() => {
+    //if new chat prevent triggerign changes based on id and chatId
+    if (!allowStreamingUpdateRef.current) {
+      return;
+    }
+
+    //update path with chatId for new chat
+    if (!id && !!chatId) {
+      navigate(`/${chatId}`);
+      return;
+    }
+
+    //if navigate to another chat update chat data
+    if (id !== chatId && id) {
+      if (currentChatData?.messages) {
+        setChatId(id);
+        setCurrentChat(currentChatData?.messages);
+      } else {
+        navigate("/");
+      }
+    }
+  }, [chatId, id]);
+
+  useEffect(() => {
+    if (!id) {
+      if (currentChat?.length) {
+        setCurrentChat([]);
+      }
+
+      if (chatId) {
+        setChatId(null);
+      }
+    }
+  }, []);
 
   return (
     <div className="w-full flex flex-col justify-start relative h-dvh text-[14px]">
@@ -39,10 +88,10 @@ export default function Main() {
       )}
       <div className="shrink-0 bottom-[20px]  w-full  max-w-[80%]  mx-auto py-5  ">
         <div className="flex flex-row bg-gray-50 py-2 px-3 rounded-4xl border-gray-200 border-2">
-          <input
+          <textarea
             type="text"
             placeholder="Enter your query"
-            className=" outline-0 border-0 text-gray-800 font-light flex-1"
+            className=" outline-0 border-0 text-gray-800 font-light flex-1 min-h-lh max-h-[10lh] field-sizing-content resize-none"
             value={userInput}
             onChange={(e) => setUserInput(e.target.value)}
           />
