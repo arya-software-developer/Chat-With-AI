@@ -1,6 +1,6 @@
-import Sidebar from "./components/Sidebar/Sidebar";
-import Main from "./components/Main/Main";
 import { useContext, useEffect } from "react";
+import { Outlet } from "react-router-dom";
+import Sidebar from "./components/Sidebar/Sidebar";
 import { ChatContext } from "./context/ChatContext";
 
 function App() {
@@ -15,7 +15,7 @@ function App() {
   return (
     <div className="flex flex-row justify-start">
       <Sidebar />
-      <Main />
+      <Outlet></Outlet>
     </div>
   );
 }
