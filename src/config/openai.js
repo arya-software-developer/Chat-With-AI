@@ -43,20 +43,25 @@ async function streamOpenRouterChat({
     const reader = response.body.getReader();
     const decoder = new TextDecoder("utf-8");
 
+    let buffer = "";
+
     while (true) {
       const { value, done } = await reader.read();
       if (done) {
-        onComplete?.();
+        onComplete();
         break;
       }
 
       const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk
-        .split("\n")
-        .filter((line) => line.trim().startsWith("data:"));
+      buffer += chunk;
+
+      const lines = buffer.split("\n");
+      buffer = lines.pop(); // last line might be incomplete
 
       for (const line of lines) {
-        const jsonStr = line.replace("data: ", "").trim();
+        if (!line.trim().startsWith("data:")) continue;
+
+        const jsonStr = line.replace("data:", "").trim();
 
         if (jsonStr === "[DONE]") {
           updateChatStorage(
@@ -70,7 +75,7 @@ async function streamOpenRouterChat({
             setChatId(chatId);
           }
 
-          onComplete?.();
+          onComplete();
           return;
         }
 
@@ -81,25 +86,28 @@ async function streamOpenRouterChat({
             console.error("API Error:", parsed.error.message);
             setError(true);
             setLoading(false);
-            onComplete?.();
-            return; // stop processing further chunks
+            onComplete();
+            return;
           }
 
           if (!chatId && parsed.id) {
-            chatId = parsed?.id;
+            chatId = parsed.id;
             isNewChat = true;
             setCurrentId(chatId);
           }
+
           const token = parsed.choices?.[0]?.delta?.content;
           if (token) {
             if (!loadingTurnedOff) {
               setLoading(false);
+              loadingTurnedOff = true;
             }
 
             getChunk(token);
             currentAssistantReply += token;
           }
         } catch (err) {
+          // JSON.parse failed, malformed chunk
           console.warn("Stream parse error:", err, line);
           setLoading(false);
           setError(true);
